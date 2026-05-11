@@ -25,6 +25,29 @@ function requireNumber(name, value) {
   }
 }
 
+// Private helper — standard normal CDF Φ(x) via Abramowitz & Stegun formula
+// 26.2.17 (rational polynomial approximation). Absolute error ≲ 7.5e-8 across
+// the real line; sufficient for closed-form BSM evaluation in this app. Not
+// exported — callers should use realOptionBSM, which encapsulates Φ usage.
+//
+// Symmetry: Φ(-x) = 1 - Φ(x). We compute on the positive side and reflect.
+function _standardNormalCdf(x) {
+  if (x < 0) return 1 - _standardNormalCdf(-x);
+  const p = 0.2316419;
+  const b1 = 0.319381530;
+  const b2 = -0.356563782;
+  const b3 = 1.781477937;
+  const b4 = -1.821255978;
+  const b5 = 1.330274429;
+  const t = 1 / (1 + p * x);
+  const t2 = t * t;
+  const t3 = t2 * t;
+  const t4 = t3 * t;
+  const t5 = t4 * t;
+  const phi = Math.exp(-x * x / 2) / Math.sqrt(2 * Math.PI);
+  return 1 - phi * (b1 * t + b2 * t2 + b3 * t3 + b4 * t4 + b5 * t5);
+}
+
 // ---------------------------------------------------------------------------
 // Model 1 — Gordon perpetuity (docs §II)
 //
@@ -244,4 +267,127 @@ export function costMethod(L, C_replace, d) {
     throw new RangeError(`Cost method: d must be in [0, 1], got ${d}`);
   }
   return L + C_replace * (1 - d);
+}
+
+// ---------------------------------------------------------------------------
+// Model 5.3 — 实物期权法 / Real-option (Black-Scholes-Merton closed-form call)
+//
+// 以欧式看涨期权对项目的"延期开发权"或"扩张权"建模。BSM 闭式：
+//
+//   C = S · Φ(d1) - K · e^(-r_f · T) · Φ(d2)
+//   d1 = [ ln(S/K) + (r_f + ½·σ²)·T ] / (σ·√T)
+//   d2 = d1 - σ·√T
+//
+//   S     : 标的资产现值（元），> 0
+//   K     : 执行价格 / 投入成本（元），> 0
+//   sigma : 标的资产年化波动率（1/年^½），> 0
+//   r_f   : 无风险收益率（1/年），可正可负
+//   T     : 到期时间（年），> 0
+//
+// Φ 由私有 _standardNormalCdf 提供（A-S 26.2.17）。每个参数都是 caller-supplied
+// 输入，不设默认。
+// ---------------------------------------------------------------------------
+export function realOptionBSM(S, K, sigma, r_f, T) {
+  requireNumber("S", S);
+  requireNumber("K", K);
+  requireNumber("sigma", sigma);
+  requireNumber("r_f", r_f);
+  requireNumber("T", T);
+  if (S <= 0) {
+    throw new RangeError(`realOptionBSM: S must be > 0, got ${S}`);
+  }
+  if (K <= 0) {
+    throw new RangeError(`realOptionBSM: K must be > 0, got ${K}`);
+  }
+  if (sigma <= 0) {
+    throw new RangeError(`realOptionBSM: sigma must be > 0, got ${sigma}`);
+  }
+  if (T <= 0) {
+    throw new RangeError(`realOptionBSM: T must be > 0, got ${T}`);
+  }
+  const sqrtT = Math.sqrt(T);
+  const d1 = (Math.log(S / K) + (r_f + 0.5 * sigma * sigma) * T) / (sigma * sqrtT);
+  const d2 = d1 - sigma * sqrtT;
+  return S * _standardNormalCdf(d1) - K * Math.exp(-r_f * T) * _standardNormalCdf(d2);
+}
+
+// ---------------------------------------------------------------------------
+// Model 5.4 — 剩余收益模型 / Ohlson (1995) 有限期 Residual Income
+//
+//   V_0 = Book_0 + Σ_{t=1..N} RI_t / (1+r)^t + CV_N / (1+r)^N
+//   RI_t = NOI_t - r · Book_{t-1}
+//   Book_t = Book_{t-1} - depreciation_t + capEx_t
+//
+//   Book0          : 初始账面价值（元），有限
+//   NOIs           : 长度 N 的 NOI 数组（元/年），每项有限
+//   depreciations  : 长度 N 的折旧数组（元/年），每项有限
+//   capEx          : 长度 N 的资本支出数组（元/年），每项有限
+//   r              : 折现率（1/年），有限，须 > -1
+//   CV_N           : 第 N 年末的续期价值（元），有限
+//
+// 关键时序：第 t 期使用进入该期的 Book_{t-1} 计算 RI_t，并在该期 RI 折现完成
+// "之后" 才更新 Book → Book_t。三个数组长度必须严格一致。
+// ---------------------------------------------------------------------------
+export function residualIncome(Book0, NOIs, depreciations, capEx, r, CV_N) {
+  requireNumber("Book0", Book0);
+  if (NOIs === undefined) {
+    throw new TypeError("Missing required parameter: NOIs");
+  }
+  if (!Array.isArray(NOIs)) {
+    throw new TypeError(`NOIs must be an array, got ${typeof NOIs}`);
+  }
+  if (depreciations === undefined) {
+    throw new TypeError("Missing required parameter: depreciations");
+  }
+  if (!Array.isArray(depreciations)) {
+    throw new TypeError(`depreciations must be an array, got ${typeof depreciations}`);
+  }
+  if (capEx === undefined) {
+    throw new TypeError("Missing required parameter: capEx");
+  }
+  if (!Array.isArray(capEx)) {
+    throw new TypeError(`capEx must be an array, got ${typeof capEx}`);
+  }
+  requireNumber("r", r);
+  requireNumber("CV_N", CV_N);
+  if (r <= -1) {
+    throw new RangeError(`residualIncome: r must be > -1, got ${r}`);
+  }
+  const N = NOIs.length;
+  if (N === 0) {
+    throw new RangeError("residualIncome: NOIs must be non-empty");
+  }
+  if (depreciations.length !== N) {
+    throw new RangeError(
+      `residualIncome: depreciations.length ${depreciations.length} != NOIs.length ${N}`,
+    );
+  }
+  if (capEx.length !== N) {
+    throw new RangeError(
+      `residualIncome: capEx.length ${capEx.length} != NOIs.length ${N}`,
+    );
+  }
+  for (let i = 0; i < N; i++) {
+    if (!isFiniteNumber(NOIs[i])) {
+      throw new TypeError(`NOIs[${i}] must be a finite number, got ${String(NOIs[i])}`);
+    }
+    if (!isFiniteNumber(depreciations[i])) {
+      throw new TypeError(
+        `depreciations[${i}] must be a finite number, got ${String(depreciations[i])}`,
+      );
+    }
+    if (!isFiniteNumber(capEx[i])) {
+      throw new TypeError(`capEx[${i}] must be a finite number, got ${String(capEx[i])}`);
+    }
+  }
+
+  let book = Book0;
+  let pv = Book0;
+  for (let t = 1; t <= N; t++) {
+    const RI_t = NOIs[t - 1] - r * book;
+    pv += RI_t / Math.pow(1 + r, t);
+    book = book - depreciations[t - 1] + capEx[t - 1];
+  }
+  pv += CV_N / Math.pow(1 + r, N);
+  return pv;
 }

@@ -17,6 +17,8 @@ import {
   directCapitalisation,
   marketComparison,
   costMethod,
+  realOptionBSM,
+  residualIncome,
 } from "../src/valuation.mjs";
 
 const approx = (actual, expected, eps = 1e-9) => {
@@ -292,4 +294,137 @@ test("costMethod: throws TypeError when L is undefined", () => {
 
 test("costMethod: throws TypeError when C_replace is undefined", () => {
   assert.throws(() => costMethod(100, undefined, 0.3), TypeError);
+});
+
+// ---------------------------------------------------------------------------
+// Real-option BSM (Black-Scholes-Merton closed-form call premium)
+// ---------------------------------------------------------------------------
+
+test("realOptionBSM: ATM reference S=K=100, σ=0.2, r_f=0.05, T=1 ≈ 10.4506", () => {
+  // Textbook BSM ATM call value. A-S 26.2.17 Φ has ~7.5e-8 absolute error;
+  // 1e-3 tolerance leaves ample headroom and is the planner-locked bound.
+  approx(realOptionBSM(100, 100, 0.2, 0.05, 1), 10.4506, 1e-3);
+});
+
+test("realOptionBSM: deep-ITM small-σ degenerates to S - K·e^(-r_f·T)", () => {
+  // S=200, K=100, σ=0.01, r_f=0.05, T=1 → both Φ(d1), Φ(d2) ≈ 1, so
+  // call ≈ 200 - 100·exp(-0.05) = 104.8770575...
+  const expected = 200 - 100 * Math.exp(-0.05);
+  approx(realOptionBSM(200, 100, 0.01, 0.05, 1), expected, 1e-3);
+});
+
+test("realOptionBSM: throws RangeError when sigma <= 0", () => {
+  assert.throws(() => realOptionBSM(100, 100, 0, 0.05, 1), RangeError);
+  assert.throws(() => realOptionBSM(100, 100, -0.1, 0.05, 1), RangeError);
+});
+
+test("realOptionBSM: throws RangeError when T <= 0", () => {
+  assert.throws(() => realOptionBSM(100, 100, 0.2, 0.05, 0), RangeError);
+  assert.throws(() => realOptionBSM(100, 100, 0.2, 0.05, -1), RangeError);
+});
+
+test("realOptionBSM: throws RangeError when S <= 0 or K <= 0", () => {
+  assert.throws(() => realOptionBSM(0, 100, 0.2, 0.05, 1), RangeError);
+  assert.throws(() => realOptionBSM(-1, 100, 0.2, 0.05, 1), RangeError);
+  assert.throws(() => realOptionBSM(100, 0, 0.2, 0.05, 1), RangeError);
+  assert.throws(() => realOptionBSM(100, -1, 0.2, 0.05, 1), RangeError);
+});
+
+test("realOptionBSM: throws TypeError when any required arg is undefined", () => {
+  assert.throws(() => realOptionBSM(undefined, 100, 0.2, 0.05, 1), TypeError);
+  assert.throws(() => realOptionBSM(100, undefined, 0.2, 0.05, 1), TypeError);
+  assert.throws(() => realOptionBSM(100, 100, undefined, 0.05, 1), TypeError);
+  assert.throws(() => realOptionBSM(100, 100, 0.2, undefined, 1), TypeError);
+  assert.throws(() => realOptionBSM(100, 100, 0.2, 0.05, undefined), TypeError);
+});
+
+// ---------------------------------------------------------------------------
+// Residual income (Ohlson 1995 finite-horizon)
+// ---------------------------------------------------------------------------
+
+test("residualIncome: with Book0=0 and zero deps/capEx/CV_N, identity to finiteHorizonDCF", () => {
+  // RI_t = NOI_t - r·0 = NOI_t each period; book stays 0 because
+  // deps_t = capEx_t = 0 → exactly the finiteHorizonDCF sum.
+  const noi = [100, 100, 100];
+  const viaRI = residualIncome(0, noi, [0, 0, 0], [0, 0, 0], 0.10, 0);
+  const viaDCF = finiteHorizonDCF(noi, 0.10, 0);
+  approx(viaRI, viaDCF, 1e-12);
+});
+
+test("residualIncome: r=0 sanity → Book0 + ΣNOI + CV_N (deps/capEx irrelevant)", () => {
+  // With r=0, RI_t = NOI_t - 0·book = NOI_t, no discounting.
+  // V = 500 + 10 + 20 + 30 + 100 = 660.
+  approx(residualIncome(500, [10, 20, 30], [5, 5, 5], [0, 0, 0], 0, 100), 660, 1e-9);
+});
+
+test("residualIncome: hand-computed mixed case with non-zero deps/capEx", () => {
+  // Book0=1000, NOIs=[80,90,100], deps=[20,20,20], capEx=[10,10,10],
+  // r=0.08, CV_N=1100.
+  //   t=1: book=1000, RI=80 - 0.08·1000 = 0,    disc=0/1.08 = 0
+  //        book → 1000 - 20 + 10 = 990
+  //   t=2: book=990,  RI=90 - 0.08·990  = 10.8, disc=10.8/1.08^2
+  //        book → 990  - 20 + 10 = 980
+  //   t=3: book=980,  RI=100 - 0.08·980 = 21.6, disc=21.6/1.08^3
+  //   CV term: 1100 / 1.08^3
+  //   V = 1000 + 0 + 10.8/1.08^2 + 21.6/1.08^3 + 1100/1.08^3
+  const expected =
+    1000 + 0 + 10.8 / Math.pow(1.08, 2) + 21.6 / Math.pow(1.08, 3) + 1100 / Math.pow(1.08, 3);
+  approx(
+    residualIncome(1000, [80, 90, 100], [20, 20, 20], [10, 10, 10], 0.08, 1100),
+    expected,
+    1e-9,
+  );
+});
+
+test("residualIncome: N=1 single-period sanity", () => {
+  // Book0=100, NOIs=[10], deps=[0], capEx=[0], r=0.1, CV_N=0
+  // V = 100 + (10 - 0.1·100)/1.1 + 0/1.1 = 100 + 0 = 100
+  approx(residualIncome(100, [10], [0], [0], 0.1, 0), 100, 1e-9);
+});
+
+test("residualIncome: throws RangeError on mismatched array lengths", () => {
+  assert.throws(
+    () => residualIncome(100, [10, 20], [0], [0, 0], 0.1, 0),
+    RangeError,
+  );
+  assert.throws(
+    () => residualIncome(100, [10, 20], [0, 0], [0], 0.1, 0),
+    RangeError,
+  );
+});
+
+test("residualIncome: throws RangeError when r <= -1", () => {
+  assert.throws(() => residualIncome(100, [10], [0], [0], -1, 0), RangeError);
+  assert.throws(() => residualIncome(100, [10], [0], [0], -1.5, 0), RangeError);
+});
+
+test("residualIncome: throws RangeError on empty NOIs", () => {
+  assert.throws(() => residualIncome(100, [], [], [], 0.1, 0), RangeError);
+});
+
+test("residualIncome: throws TypeError when any required arg is undefined", () => {
+  assert.throws(
+    () => residualIncome(undefined, [10], [0], [0], 0.1, 0),
+    TypeError,
+  );
+  assert.throws(
+    () => residualIncome(100, undefined, [0], [0], 0.1, 0),
+    TypeError,
+  );
+  assert.throws(
+    () => residualIncome(100, [10], undefined, [0], 0.1, 0),
+    TypeError,
+  );
+  assert.throws(
+    () => residualIncome(100, [10], [0], undefined, 0.1, 0),
+    TypeError,
+  );
+  assert.throws(
+    () => residualIncome(100, [10], [0], [0], undefined, 0),
+    TypeError,
+  );
+  assert.throws(
+    () => residualIncome(100, [10], [0], [0], 0.1, undefined),
+    TypeError,
+  );
 });
