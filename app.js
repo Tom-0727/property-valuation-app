@@ -9,6 +9,7 @@
 import {
   gordonPerpetuity,
   finiteHorizonDCF,
+  finiteHorizonDCFConstantGrowth,
   directCapitalisation,
   marketComparison,
   costMethod,
@@ -136,9 +137,43 @@ function handleDCF(event) {
     const r = parseRequiredNumber(form.elements.r.value, "r");
     const TV = parseRequiredNumber(form.elements.TV.value, "TV");
     const value = finiteHorizonDCF(cashFlows, r, TV);
-    renderSuccess(result, value, "有限年期 DCF");
+    renderSuccess(result, value, "有限年期 DCF（高级模式）");
   } catch (err) {
     renderError(result, err);
+  }
+}
+
+function handleDCFSimple(event) {
+  event.preventDefault();
+  const result = document.getElementById("result-dcf-simple");
+  try {
+    const form = event.currentTarget;
+    const NOI_1 = parseRequiredNumber(form.elements.NOI_1.value, "NOI_1");
+    const g = parseRequiredNumber(form.elements.g.value, "g");
+    const N = parseRequiredNumber(form.elements.N.value, "N");
+    if (!Number.isInteger(N) || N < 1) {
+      throw new Error("参数「N」必须为不小于 1 的整数。");
+    }
+    const r = parseRequiredNumber(form.elements.r.value, "r");
+    const TV = parseRequiredNumber(form.elements.TV.value, "TV");
+    const value = finiteHorizonDCFConstantGrowth(NOI_1, g, N, r, TV);
+    renderSuccess(result, value, "有限年期 DCF（简单模式 / 年化常数增长）");
+  } catch (err) {
+    renderError(result, err);
+  }
+}
+
+function handleDCFModeToggle() {
+  const simpleFieldset = document.getElementById("dcf-simple-fields");
+  const advancedFieldset = document.getElementById("dcf-advanced-fields");
+  const simpleRadio = document.getElementById("dcf-mode-simple");
+  if (!simpleFieldset || !advancedFieldset || !simpleRadio) return;
+  if (simpleRadio.checked) {
+    simpleFieldset.hidden = false;
+    advancedFieldset.hidden = true;
+  } else {
+    simpleFieldset.hidden = true;
+    advancedFieldset.hidden = false;
   }
 }
 
@@ -216,12 +251,12 @@ function buildComparableRow(index) {
     '<div class="field">' +
     '<label>P_' + humanIndex + '：成交价（元），需 &gt; 0</label>' +
     '<input name="price" type="text" inputmode="decimal" placeholder="请输入第 ' + humanIndex + ' 个可比案例的成交价" autocomplete="off" />' +
-    '<span class="hint">由当地公开成交数据获取；由使用者输入。</span>' +
+    '<span class="hint">由当地公开成交数据获取，请由您填入。</span>' +
     '</div>' +
     '<div class="field">' +
     '<label>第 ' + humanIndex + ' 个案例的调整系数（小数，以英文逗号或空格分隔；属性集需所有案例一致）</label>' +
     '<input name="adjustments" type="text" inputmode="decimal" placeholder="按与第 1 个案例相同的属性集顺序填入" autocomplete="off" />' +
-    '<span class="hint">每一项 c_{ij} 由使用者依当地市场对该属性的边际定价输入；本应用不预置任何属性溢价数值。</span>' +
+    '<span class="hint">每一项 c_{ij} 请由您依据当地市场对该属性的边际定价输入。</span>' +
     '</div>';
   return wrapper;
 }
@@ -251,6 +286,15 @@ function wire() {
 
   const dcf = document.getElementById("form-dcf");
   if (dcf) dcf.addEventListener("submit", handleDCF);
+
+  const dcfSimple = document.getElementById("form-dcf-simple");
+  if (dcfSimple) dcfSimple.addEventListener("submit", handleDCFSimple);
+
+  const dcfModeRadios = document.querySelectorAll('input[name="dcf-mode"]');
+  dcfModeRadios.forEach((radio) => radio.addEventListener("change", handleDCFModeToggle));
+  // Initialise visibility once at wire time, so default-checked simple mode
+  // is reflected and the advanced fieldset is properly hidden.
+  handleDCFModeToggle();
 
   const cap = document.getElementById("form-cap");
   if (cap) cap.addEventListener("submit", handleCap);

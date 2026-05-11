@@ -13,6 +13,7 @@ import assert from "node:assert/strict";
 import {
   gordonPerpetuity,
   finiteHorizonDCF,
+  finiteHorizonDCFConstantGrowth,
   directCapitalisation,
   marketComparison,
   costMethod,
@@ -111,6 +112,59 @@ test("finiteHorizonDCF: throws TypeError when TV is undefined (no-default guardr
 test("finiteHorizonDCF: throws TypeError when a CF entry is non-numeric", () => {
   assert.throws(() => finiteHorizonDCF([100, "200"], 0.1, 0), TypeError);
   assert.throws(() => finiteHorizonDCF([100, NaN], 0.1, 0), TypeError);
+});
+
+// ---------------------------------------------------------------------------
+// Finite-horizon DCF with constant-growth NOI (simple-mode wrapper)
+// ---------------------------------------------------------------------------
+
+test("finiteHorizonDCFConstantGrowth: NOI_1=100, g=0, N=3, r=0.10, TV=0 -> ≈ 248.685199", () => {
+  // V = 100/1.1 + 100/1.21 + 100/1.331
+  const expected = 100 / 1.1 + 100 / 1.21 + 100 / 1.331;
+  approx(finiteHorizonDCFConstantGrowth(100, 0, 3, 0.10, 0), expected, 1e-9);
+});
+
+test("finiteHorizonDCFConstantGrowth: g=0 matches finiteHorizonDCF with flat CF series", () => {
+  const viaWrapper = finiteHorizonDCFConstantGrowth(100, 0, 3, 0.10, 0);
+  const viaCore = finiteHorizonDCF([100, 100, 100], 0.10, 0);
+  approx(viaWrapper, viaCore, 1e-12);
+});
+
+test("finiteHorizonDCFConstantGrowth: NOI_1=100, g=0.05, N=2, r=0.10, TV=0 -> 100/1.1 + 105/1.21", () => {
+  const expected = 100 / 1.1 + 105 / 1.21;
+  approx(finiteHorizonDCFConstantGrowth(100, 0.05, 2, 0.10, 0), expected, 1e-9);
+});
+
+test("finiteHorizonDCFConstantGrowth: TV propagates correctly through wrapper", () => {
+  // N=1, NOI_1=100, g anything (only t=1 used), r=0.10, TV=1100
+  const expected = 100 / 1.1 + 1100 / 1.1;
+  approx(finiteHorizonDCFConstantGrowth(100, 0.05, 1, 0.10, 1100), expected, 1e-9);
+});
+
+test("finiteHorizonDCFConstantGrowth: throws TypeError on undefined NOI_1 / g / r / TV", () => {
+  assert.throws(() => finiteHorizonDCFConstantGrowth(undefined, 0, 3, 0.10, 0), TypeError);
+  assert.throws(() => finiteHorizonDCFConstantGrowth(100, undefined, 3, 0.10, 0), TypeError);
+  assert.throws(() => finiteHorizonDCFConstantGrowth(100, 0, 3, undefined, 0), TypeError);
+  assert.throws(() => finiteHorizonDCFConstantGrowth(100, 0, 3, 0.10, undefined), TypeError);
+});
+
+test("finiteHorizonDCFConstantGrowth: throws TypeError when N is undefined", () => {
+  assert.throws(() => finiteHorizonDCFConstantGrowth(100, 0, undefined, 0.10, 0), TypeError);
+});
+
+test("finiteHorizonDCFConstantGrowth: throws TypeError on NaN r", () => {
+  assert.throws(() => finiteHorizonDCFConstantGrowth(100, 0, 3, NaN, 0), TypeError);
+});
+
+test("finiteHorizonDCFConstantGrowth: throws RangeError when N is 0, negative or non-integer", () => {
+  assert.throws(() => finiteHorizonDCFConstantGrowth(100, 0, 0, 0.10, 0), RangeError);
+  assert.throws(() => finiteHorizonDCFConstantGrowth(100, 0, -1, 0.10, 0), RangeError);
+  assert.throws(() => finiteHorizonDCFConstantGrowth(100, 0, 2.5, 0.10, 0), RangeError);
+});
+
+test("finiteHorizonDCFConstantGrowth: throws RangeError when r <= -1", () => {
+  assert.throws(() => finiteHorizonDCFConstantGrowth(100, 0, 3, -1, 0), RangeError);
+  assert.throws(() => finiteHorizonDCFConstantGrowth(100, 0, 3, -1.2, 0), RangeError);
 });
 
 // ---------------------------------------------------------------------------

@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>估值计算 — 中国商品住宅内在价值估值</title>
-  <meta name="description" content="逐参数填入，多模型并列输出；任何数值均由用户输入，应用不预置数值。" />
+  <meta name="description" content="逐项填入您自己房产的参数，本页同时给出多个估值模型的结果，便于您交叉比较。" />
   <link rel="stylesheet" href="./styles.css" />
   <script type="module" src="./app.js" defer></script>
 </head>
@@ -12,7 +12,7 @@
   <main>
     <header class="site-header">
       <h1>估值计算</h1>
-      <p class="tagline">逐参数填入；不填即报错，不会被默认值掩盖。</p>
+      <p class="tagline">请按下方表单逐项填入您自己房产的参数；空白或非法输入会给出明确的中文错误提示。</p>
       <nav class="site-nav">
         <a href="./index.html">返回首页</a>
         <a href="./about.html">模型详情</a>
@@ -21,7 +21,7 @@
     </header>
 
     <p class="applicability">
-      数值参数全部需由使用者填写。本应用不预置折旧率、增长率、贴现率、资本化率、空置率、续期对价、风险溢价、终值等任何「推荐值」或「典型值」。
+      请依据您自家房产的实际情况，以及所在城市的市场行情，逐项填入下方每个参数；折旧率、增长率、贴现率、资本化率、空置率、续期对价、风险溢价、终值等均由您自己决定。
     </p>
 
     <!-- ============================== Gordon 永续模型 ============================== -->
@@ -32,17 +32,17 @@
         <div class="field">
           <label for="gordon-noi">NOI_1：未来第 1 年净营业收入（元/年）</label>
           <input id="gordon-noi" name="NOI_1" type="text" inputmode="decimal" placeholder="请输入元/年的净营业收入" autocomplete="off" />
-          <span class="hint">由「(月租金 × 12) × (1 − 空置率) − 物业费 − 维修费 − 保险 − 房产税」得到，各项均由使用者依据自身房产逐项填入。</span>
+          <span class="hint">由「(月租金 × 12) × (1 − 空置率) − 物业费 − 维修费 − 保险 − 房产税」得到，请您依据自家房产逐项填入各成本。</span>
         </div>
         <div class="field">
           <label for="gordon-r">r：折现 / 资本化报酬率（1/年，例如 0.08 表示 8%）</label>
           <input id="gordon-r" name="r" type="text" inputmode="decimal" placeholder="请输入年化折现率，小数形式" autocomplete="off" />
-          <span class="hint">可由「无风险利率 + 流动性溢价 + 标的风险溢价」构建法得到；每一分量由使用者输入，不预置数值。</span>
+          <span class="hint">可由「无风险利率 + 流动性溢价 + 标的风险溢价」构建法得到，每一分量请由您依据当前市场情况输入。</span>
         </div>
         <div class="field">
           <label for="gordon-g">g：NOI 长期可持续增长率（1/年）</label>
           <input id="gordon-g" name="g" type="text" inputmode="decimal" placeholder="请输入年化增长率，小数形式" autocomplete="off" />
-          <span class="hint">由使用者结合所在城市长期租金增长经验或宏观判断输入；公式要求 g &lt; r。</span>
+          <span class="hint">请您结合所在城市长期租金增长经验或宏观判断输入；公式要求 g &lt; r。</span>
         </div>
         <button type="submit">计算永续模型估值</button>
         <div class="result" id="result-gordon" aria-live="polite"></div>
@@ -53,25 +53,74 @@
     <section class="model-card" id="card-dcf">
       <h2>模型二　有限年期 DCF（推荐主模型）</h2>
       <div class="formula">V = Σ CF_t / (1 + r)^t  +  TV / (1 + r)^N</div>
-      <form id="form-dcf" novalidate>
-        <div class="field">
-          <label for="dcf-cf">CF_t：逐年现金流序列（元/年；以英文逗号、空格或换行分隔）</label>
-          <textarea id="dcf-cf" name="cashFlows" rows="3" placeholder="按 t=1, 2, …, N 顺序输入，例如：第一年现金流，第二年现金流，… 第 N 年现金流" autocomplete="off"></textarea>
-          <span class="hint">N 由序列长度隐式给出；N 通常等于「剩余土地使用年限」，由不动产权证上的使用权终止日期减估值时点得到。CF_t 由租金、空置、运营成本、税费的逐年预测得出。</span>
-        </div>
-        <div class="field">
-          <label for="dcf-r">r：折现率（1/年），需 &gt; −1</label>
-          <input id="dcf-r" name="r" type="text" inputmode="decimal" placeholder="请输入年化折现率，小数形式" autocomplete="off" />
-          <span class="hint">同永续模型 r 的估算路径：构建法 / 同类项目反推等，由使用者输入。</span>
-        </div>
-        <div class="field">
-          <label for="dcf-tv">TV：第 N 年末终值（元），保守为 0；亦可填入续期对价情景下的净权益</label>
-          <input id="dcf-tv" name="TV" type="text" inputmode="decimal" placeholder="请输入终值；若保守认为续期对价 ≥ 房屋净值，可输入 0" autocomplete="off" />
-          <span class="hint">可按「零终值」「房屋残值 = 残值率 × 重置成本」「续期对价情景 = 续期后剩余权益现值 − 续期对价」三种结构之一构造，由使用者选定。</span>
-        </div>
-        <button type="submit">计算有限年期 DCF 估值</button>
-        <div class="result" id="result-dcf" aria-live="polite"></div>
-      </form>
+
+      <div class="field dcf-mode-selector">
+        <label class="dcf-mode-label">
+          <input type="radio" name="dcf-mode" value="simple" id="dcf-mode-simple" checked />
+          简单模式（年化常数增长）
+        </label>
+        <label class="dcf-mode-label">
+          <input type="radio" name="dcf-mode" value="advanced" id="dcf-mode-advanced" />
+          自定义现金流序列（高级）
+        </label>
+        <span class="hint">默认推荐「简单模式」：您只需填入第 1 年 NOI、年增长率 g、年限 N、折现率 r 与终值 TV，工具会自动按 NOI_t = NOI_1 × (1 + g)^(t−1) 展开现金流。若您对未来每年现金流另有具体预测，可切换到「高级」直接粘贴整条序列。</span>
+      </div>
+
+      <fieldset class="dcf-mode-fieldset" id="dcf-simple-fields">
+        <legend class="sr-legend">简单模式输入</legend>
+        <form id="form-dcf-simple" novalidate>
+          <div class="field">
+            <label for="dcf-s-noi1">NOI_1：未来第 1 年净营业收入（元/年）</label>
+            <input id="dcf-s-noi1" name="NOI_1" type="text" inputmode="decimal" placeholder="请输入元/年的净营业收入" autocomplete="off" />
+            <span class="hint">由租金毛收入扣除空置、物业费、维修费、保险、房产税等成本得到，请您依据自家房产逐项填入。</span>
+          </div>
+          <div class="field">
+            <label for="dcf-s-g">g：NOI 年化增长率（1/年，小数形式，可为负）</label>
+            <input id="dcf-s-g" name="g" type="text" inputmode="decimal" placeholder="请输入年化增长率，小数形式" autocomplete="off" />
+            <span class="hint">请您结合所在城市长期租金增长经验或对宏观租金的判断输入；若您预期租金长期持平，可填 0。</span>
+          </div>
+          <div class="field">
+            <label for="dcf-s-N">N：剩余持有 / 使用年限（年，整数 ≥ 1）</label>
+            <input id="dcf-s-N" name="N" type="text" inputmode="numeric" placeholder="请输入正整数年数" autocomplete="off" />
+            <span class="hint">通常等于不动产权证 / 国有土地使用证上「使用权终止日期」减去估值时点的年数，由您自行计算后填入。</span>
+          </div>
+          <div class="field">
+            <label for="dcf-s-r">r：折现率（1/年，需 &gt; −1）</label>
+            <input id="dcf-s-r" name="r" type="text" inputmode="decimal" placeholder="请输入年化折现率，小数形式" autocomplete="off" />
+            <span class="hint">同永续模型 r 的估算路径：构建法或同类项目反推，请由您依据当前市场情况输入。</span>
+          </div>
+          <div class="field">
+            <label for="dcf-s-TV">TV：第 N 年末终值（元）</label>
+            <input id="dcf-s-TV" name="TV" type="text" inputmode="decimal" placeholder="请输入终值；若您保守地认为续期对价 ≥ 房屋净值，可填 0" autocomplete="off" />
+            <span class="hint">可按「零终值」「房屋残值 = 残值率 × 重置成本」「续期对价情景 = 续期后剩余权益现值 − 续期对价」三种思路任选其一，由您自行决定情景。</span>
+          </div>
+          <button type="submit">计算有限年期 DCF 估值（简单模式）</button>
+          <div class="result" id="result-dcf-simple" aria-live="polite"></div>
+        </form>
+      </fieldset>
+
+      <fieldset class="dcf-mode-fieldset" id="dcf-advanced-fields" hidden>
+        <legend class="sr-legend">高级模式输入</legend>
+        <form id="form-dcf" novalidate>
+          <div class="field">
+            <label for="dcf-cf">CF_t：逐年现金流序列（元/年；以英文逗号、空格或换行分隔）</label>
+            <textarea id="dcf-cf" name="cashFlows" rows="3" placeholder="按 t=1, 2, …, N 顺序输入：第 1 年现金流, 第 2 年现金流, …, 第 N 年现金流" autocomplete="off"></textarea>
+            <span class="hint">仅在您对每一年的现金流另有具体预测（例如前几年仍在装修期、租金阶梯递增等）时使用；N 由序列长度隐式给出。</span>
+          </div>
+          <div class="field">
+            <label for="dcf-r">r：折现率（1/年），需 &gt; −1</label>
+            <input id="dcf-r" name="r" type="text" inputmode="decimal" placeholder="请输入年化折现率，小数形式" autocomplete="off" />
+            <span class="hint">同永续模型 r 的估算路径，请由您依据当前市场情况输入。</span>
+          </div>
+          <div class="field">
+            <label for="dcf-tv">TV：第 N 年末终值（元）</label>
+            <input id="dcf-tv" name="TV" type="text" inputmode="decimal" placeholder="请输入终值；若您保守地认为续期对价 ≥ 房屋净值，可填 0" autocomplete="off" />
+            <span class="hint">可按「零终值」「房屋残值」「续期对价」等多种思路构造，由您自行选定。</span>
+          </div>
+          <button type="submit">计算有限年期 DCF 估值（高级模式）</button>
+          <div class="result" id="result-dcf" aria-live="polite"></div>
+        </form>
+      </fieldset>
     </section>
 
     <!-- ============================== 直接资本化法 ============================== -->
@@ -82,12 +131,12 @@
         <div class="field">
           <label for="cap-noi">NOI：稳态年净营业收入（元/年）</label>
           <input id="cap-noi" name="NOI" type="text" inputmode="decimal" placeholder="请输入稳态净营业收入" autocomplete="off" />
-          <span class="hint">由租金毛收入扣除空置、运营成本与税费后得到；各项由使用者输入。</span>
+          <span class="hint">由租金毛收入扣除空置、运营成本与税费后得到，请您依据自家房产填入。</span>
         </div>
         <div class="field">
           <label for="cap-k">k：资本化率 cap rate（1/年）</label>
           <input id="cap-k" name="k" type="text" inputmode="decimal" placeholder="请输入资本化率，小数形式" autocomplete="off" />
-          <span class="hint">可由「租售比反推」（年净租金 / 成交价的市场中位数）、「同类已成交项目反推」（同类 NOI / 同类成交价）或「构建法」（无风险利率 + 流动性溢价 + 标的风险溢价 − 长期增长预期）任一路径估计，由使用者输入。</span>
+          <span class="hint">可由「租售比反推」（年净租金 / 成交价的市场中位数）、「同类已成交项目反推」或「构建法」（无风险利率 + 流动性溢价 + 标的风险溢价 − 长期增长预期）任一路径估算，请由您依据当前市场情况输入。</span>
         </div>
         <button type="submit">计算直接资本化估值</button>
         <div class="result" id="result-cap" aria-live="polite"></div>
@@ -108,12 +157,12 @@
             <div class="field">
               <label>P_1：成交价（元），需 &gt; 0</label>
               <input name="price" type="text" inputmode="decimal" placeholder="请输入第 1 个可比案例的成交价" autocomplete="off" />
-              <span class="hint">由当地公开成交数据获取；由使用者输入。</span>
+              <span class="hint">由当地公开成交数据获取，请由您填入。</span>
             </div>
             <div class="field">
               <label>第 1 个案例的调整系数（小数，以英文逗号或空格分隔；属性集需所有案例一致）</label>
-              <input name="adjustments" type="text" inputmode="decimal" placeholder="例如：朝向、楼层、装修等属性的调整系数；空白则表示无 hedonic 调整" autocomplete="off" />
-              <span class="hint">每一项 c_{ij} 由使用者依当地市场对该属性的边际定价输入；本应用不预置任何属性溢价数值。</span>
+              <input name="adjustments" type="text" inputmode="decimal" placeholder="请输入朝向、楼层、装修等属性的调整系数；若无 hedonic 调整可留空" autocomplete="off" />
+              <span class="hint">每一项 c_{ij} 请由您依据当地市场对该属性的边际定价输入。</span>
             </div>
           </div>
           <div class="comparable-row" data-row-index="1">
@@ -121,12 +170,12 @@
             <div class="field">
               <label>P_2：成交价（元），需 &gt; 0</label>
               <input name="price" type="text" inputmode="decimal" placeholder="请输入第 2 个可比案例的成交价" autocomplete="off" />
-              <span class="hint">由当地公开成交数据获取；由使用者输入。</span>
+              <span class="hint">由当地公开成交数据获取，请由您填入。</span>
             </div>
             <div class="field">
               <label>第 2 个案例的调整系数（小数，以英文逗号或空格分隔；属性集需所有案例一致）</label>
               <input name="adjustments" type="text" inputmode="decimal" placeholder="按与第 1 个案例相同的属性集顺序填入" autocomplete="off" />
-              <span class="hint">每一项 c_{ij} 由使用者依当地市场对该属性的边际定价输入；本应用不预置任何属性溢价数值。</span>
+              <span class="hint">每一项 c_{ij} 请由您依据当地市场对该属性的边际定价输入。</span>
             </div>
           </div>
         </div>
@@ -146,17 +195,17 @@
         <div class="field">
           <label for="cost-L">L：土地使用权评估价值（元），需 ≥ 0</label>
           <input id="cost-L" name="L" type="text" inputmode="decimal" placeholder="请输入土地使用权价值" autocomplete="off" />
-          <span class="hint">由基准地价系数修正法或市场比较法得到；由使用者输入。</span>
+          <span class="hint">由基准地价系数修正法或市场比较法得到，请由您依据所在地块情况填入。</span>
         </div>
         <div class="field">
           <label for="cost-cr">C_replace：建筑物重置完全价格（元），需 ≥ 0</label>
           <input id="cost-cr" name="C_replace" type="text" inputmode="decimal" placeholder="请输入建筑物重置成本" autocomplete="off" />
-          <span class="hint">按当前建安造价重新建造同等建筑的成本；由当地建安造价查询得到。</span>
+          <span class="hint">按当前建安造价重新建造同等建筑的成本，请您查询当地建安造价后填入。</span>
         </div>
         <div class="field">
           <label for="cost-d">d：综合折旧率（比例，0 到 1 之间）</label>
           <input id="cost-d" name="d" type="text" inputmode="decimal" placeholder="请输入综合折旧率（含物理、功能、外部折旧）" autocomplete="off" />
-          <span class="hint">由使用者根据建筑年龄、维护状况、功能落后程度判断；本应用严格不给出 d 的任何数值建议。</span>
+          <span class="hint">请您根据建筑年龄、维护状况、功能落后程度判断后填入。</span>
         </div>
         <button type="submit">计算成本法估值</button>
         <div class="result" id="result-cost" aria-live="polite"></div>
@@ -165,7 +214,7 @@
 
     <footer class="site-footer">
       <p>
-        所有数值均由使用者输入；缺参或非法参数会在结果区显示具体错误信息。源码：
+        所有数值均由您自己填入；空白或非法输入会在结果区显示具体错误信息。源码：
         <a href="https://github.com/Tom-0727/property-valuation-app" target="_blank" rel="noopener noreferrer">github.com/Tom-0727/property-valuation-app</a>
       </p>
     </footer>

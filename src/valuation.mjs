@@ -90,6 +90,52 @@ export function finiteHorizonDCF(cashFlows, r, TV) {
 }
 
 // ---------------------------------------------------------------------------
+// Model 2b — Finite-horizon DCF with constant-growth NOI (thin wrapper)
+//
+// A convenience wrapper around finiteHorizonDCF for the common "simple-mode"
+// case where the caller does not have an explicit year-by-year CF series but
+// is willing to assume a single constant annual growth rate g applied to a
+// year-1 NOI base. The series is built as:
+//
+//   cashFlows[t-1] = NOI_1 · (1 + g)^(t-1)   for t = 1..N
+//
+// and then routed through finiteHorizonDCF(cashFlows, r, TV). g is a REQUIRED
+// user input — no default is supplied. The math layer's no-defaults contract
+// is preserved for every parameter.
+//
+//   NOI_1 : year-1 net operating income (元/年), finite
+//   g     : annual growth rate of NOI (1/年), finite (may be negative)
+//   N     : number of years in the horizon, integer >= 1
+//   r     : discount rate (1/年), finite, must be > -1
+//   TV    : terminal value at year N (元), finite (set to 0 explicitly for
+//           a zero-residual scenario — never defaulted)
+// ---------------------------------------------------------------------------
+export function finiteHorizonDCFConstantGrowth(NOI_1, g, N, r, TV) {
+  requireNumber("NOI_1", NOI_1);
+  requireNumber("g", g);
+  if (N === undefined) {
+    throw new TypeError("Missing required parameter: N");
+  }
+  if (typeof N !== "number" || Number.isNaN(N) || !Number.isFinite(N)) {
+    throw new TypeError(`Parameter N must be a finite number, got ${String(N)}`);
+  }
+  if (!Number.isInteger(N) || N < 1) {
+    throw new RangeError(`DCF constant-growth: N must be an integer >= 1, got ${N}`);
+  }
+  requireNumber("r", r);
+  requireNumber("TV", TV);
+  if (r <= -1) {
+    throw new RangeError(`DCF constant-growth: r must be > -1, got ${r}`);
+  }
+
+  const cashFlows = new Array(N);
+  for (let t = 1; t <= N; t++) {
+    cashFlows[t - 1] = NOI_1 * Math.pow(1 + g, t - 1);
+  }
+  return finiteHorizonDCF(cashFlows, r, TV);
+}
+
+// ---------------------------------------------------------------------------
 // Model 3 — Direct capitalisation (docs §IV)
 //
 //   V = NOI / k

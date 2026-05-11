@@ -225,6 +225,51 @@ button.secondary {
   font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
 }
 
+/* DCF mode toggle (simple vs advanced) */
+.dcf-mode-selector {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-bottom: 12px;
+}
+
+.dcf-mode-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.dcf-mode-label input[type="radio"] {
+  width: auto;
+  margin: 0;
+}
+
+.dcf-mode-fieldset {
+  border: 1px solid var(--color-border);
+  border-radius: 6px;
+  padding: 10px 14px;
+  margin: 0 0 12px;
+  background: var(--color-result-bg);
+}
+
+.dcf-mode-fieldset[hidden] {
+  display: none;
+}
+
+.sr-legend {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
 .comparable-row {
   border: 1px dashed var(--color-border);
   border-radius: 6px;
