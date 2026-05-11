@@ -1,0 +1,250 @@
+/* Property Valuation App — minimal, zero-framework styles. */
+
+:root {
+  --color-bg: #fafafa;
+  --color-fg: #1f2328;
+  --color-muted: #57606a;
+  --color-border: #d0d7de;
+  --color-accent: #0969da;
+  --color-accent-bg: #ddf4ff;
+  --color-error: #cf222e;
+  --color-error-bg: #ffebe9;
+  --color-success: #1a7f37;
+  --color-success-bg: #dafbe1;
+  --color-input-bg: #ffffff;
+  --color-result-bg: #f6f8fa;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html, body {
+  margin: 0;
+  padding: 0;
+  background: var(--color-bg);
+  color: var(--color-fg);
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC",
+    "Hiragino Sans GB", "Microsoft YaHei", "Helvetica Neue", Arial, sans-serif;
+  font-size: 16px;
+  line-height: 1.6;
+}
+
+main {
+  max-width: 720px;
+  margin: 0 auto;
+  padding: 24px 16px 64px;
+}
+
+header.site-header {
+  border-bottom: 1px solid var(--color-border);
+  padding: 16px 0;
+  margin-bottom: 16px;
+}
+
+header.site-header h1 {
+  margin: 0 0 4px;
+  font-size: 22px;
+}
+
+header.site-header p.tagline {
+  margin: 0;
+  color: var(--color-muted);
+  font-size: 14px;
+}
+
+nav.site-nav {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-top: 12px;
+}
+
+nav.site-nav a {
+  display: inline-block;
+  padding: 6px 12px;
+  border: 1px solid var(--color-border);
+  border-radius: 6px;
+  text-decoration: none;
+  color: var(--color-accent);
+  background: var(--color-input-bg);
+}
+
+nav.site-nav a:hover {
+  background: var(--color-accent-bg);
+}
+
+h2 {
+  font-size: 20px;
+  margin-top: 32px;
+  margin-bottom: 8px;
+  border-bottom: 1px solid var(--color-border);
+  padding-bottom: 4px;
+}
+
+h3 {
+  font-size: 16px;
+  margin-top: 16px;
+  margin-bottom: 6px;
+}
+
+p, ul, ol {
+  margin: 8px 0;
+}
+
+a {
+  color: var(--color-accent);
+}
+
+.formula {
+  font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+  background: var(--color-result-bg);
+  border: 1px solid var(--color-border);
+  border-radius: 6px;
+  padding: 8px 12px;
+  margin: 8px 0;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+table.params {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 8px 0 16px;
+  font-size: 14px;
+}
+
+table.params th, table.params td {
+  border: 1px solid var(--color-border);
+  padding: 6px 8px;
+  text-align: left;
+  vertical-align: top;
+}
+
+table.params th {
+  background: var(--color-result-bg);
+}
+
+.applicability {
+  color: var(--color-muted);
+  font-size: 14px;
+  margin: 4px 0 8px;
+}
+
+/* Calculator form */
+section.model-card {
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  padding: 16px;
+  margin: 16px 0;
+  background: var(--color-input-bg);
+}
+
+.field {
+  margin: 10px 0 14px;
+}
+
+.field label {
+  display: block;
+  font-weight: 600;
+  margin-bottom: 2px;
+}
+
+.field input[type="text"], .field input[type="number"], .field textarea {
+  width: 100%;
+  padding: 8px 10px;
+  font-size: 15px;
+  border: 1px solid var(--color-border);
+  border-radius: 6px;
+  background: var(--color-input-bg);
+  font-family: inherit;
+}
+
+.field input:focus, .field textarea:focus {
+  outline: 2px solid var(--color-accent);
+  outline-offset: -1px;
+  border-color: var(--color-accent);
+}
+
+.field .hint {
+  display: block;
+  margin-top: 4px;
+  font-size: 13px;
+  color: var(--color-muted);
+}
+
+button[type="submit"], button.action {
+  padding: 8px 16px;
+  background: var(--color-accent);
+  color: #fff;
+  border: 1px solid var(--color-accent);
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 15px;
+}
+
+button[type="submit"]:hover, button.action:hover {
+  filter: brightness(0.95);
+}
+
+button.secondary {
+  padding: 4px 10px;
+  background: var(--color-input-bg);
+  color: var(--color-fg);
+  border: 1px solid var(--color-border);
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 13px;
+}
+
+.result {
+  margin-top: 12px;
+  padding: 10px 12px;
+  border-radius: 6px;
+  border: 1px solid var(--color-border);
+  background: var(--color-result-bg);
+  font-size: 15px;
+  min-height: 1em;
+}
+
+.result.success {
+  background: var(--color-success-bg);
+  border-color: var(--color-success);
+  color: var(--color-success);
+}
+
+.result.error {
+  background: var(--color-error-bg);
+  border-color: var(--color-error);
+  color: var(--color-error);
+}
+
+.result .value {
+  font-weight: 700;
+  font-size: 18px;
+  font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+}
+
+.comparable-row {
+  border: 1px dashed var(--color-border);
+  border-radius: 6px;
+  padding: 10px;
+  margin-bottom: 8px;
+}
+
+.comparable-row .row-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 4px;
+  font-weight: 600;
+  font-size: 14px;
+}
+
+footer.site-footer {
+  border-top: 1px solid var(--color-border);
+  margin-top: 48px;
+  padding-top: 16px;
+  font-size: 13px;
+  color: var(--color-muted);
+}

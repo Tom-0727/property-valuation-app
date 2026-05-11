@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>模型详情 — 中国商品住宅内在价值估值</title>
+  <meta name="description" content="五个已实现估值模型的公式、参数定义、适用边界与估算路径。" />
+  <link rel="stylesheet" href="./styles.css" />
+</head>
+<body>
+  <main>
+    <header class="site-header">
+      <h1>模型详情</h1>
+      <p class="tagline">公式 + 参数定义 + 适用边界 + 估算路径，全部参数由用户输入。</p>
+      <nav class="site-nav">
+        <a href="./index.html">返回首页</a>
+        <a href="./about.html">模型详情</a>
+        <a href="./calc.html">估值计算</a>
+      </nav>
+    </header>
+
+    <section>
+      <h2>模型一　永续模型（Gordon 增长 / 收益还原法之永续形式）</h2>
+      <div class="formula">V = NOI_1 / (r − g)，要求 g &lt; r 且 r &gt; −1</div>
+      <table class="params">
+        <thead>
+          <tr><th>参数</th><th>含义</th><th>来源</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>NOI_1</td><td>未来第 1 年的净营业收入（元/年）</td><td>由用户输入</td></tr>
+          <tr><td>r</td><td>投资人要求的折现 / 资本化报酬率（1/年）</td><td>由用户输入</td></tr>
+          <tr><td>g</td><td>NOI 的长期可持续年增长率（1/年）</td><td>由用户输入</td></tr>
+        </tbody>
+      </table>
+      <p class="applicability">
+        适用性：理论上假设标的可被永久持有并永久产生增长率为 g 的现金流，与中国 70 年使用权制度并不完全相符；
+        可作为「无偿自动续期 + 稳态增长」情形下的内在价值上界附近的 sanity check。
+        当 (r − g) 很小时对参数高度敏感，建议做敏感性分析。
+      </p>
+      <p class="applicability">
+        估算路径：NOI_1 由租金毛收入扣除空置、物业管理费、维修费、保险、房产税等成本得到；
+        r 可由「无风险利率 + 流动性溢价 + 标的风险溢价」构建法得到；
+        g 由使用者结合所在城市长期租金增长经验或宏观判断输入。
+      </p>
+    </section>
+
+    <section>
+      <h2>模型二　有限年期 DCF（推荐主模型）</h2>
+      <div class="formula">V = Σ_{t=1..N}  CF_t / (1 + r)^t  +  TV / (1 + r)^N</div>
+      <table class="params">
+        <thead>
+          <tr><th>参数</th><th>含义</th><th>来源</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>N</td><td>剩余土地使用年限（年），由 CF_t 数组长度隐式给出</td><td>由用户输入</td></tr>
+          <tr><td>CF_t</td><td>第 t 年税后自由现金流（元/年）；通常为 NOI_t 扣除房产税与必要 CapEx 后净额</td><td>由用户输入</td></tr>
+          <tr><td>r</td><td>折现率（1/年），需满足 r &gt; −1</td><td>由用户输入</td></tr>
+          <tr><td>TV</td><td>第 N 年末的终值（元），表示「到期 + 自动续期 − 续期对价 + 房屋残值」净权益的 N 时点值</td><td>由用户输入</td></tr>
+        </tbody>
+      </table>
+      <p class="applicability">
+        适用性：本应用推荐的主模型。把 70 年制度直接编码进期数 N，把法律不确定性显式化为 TV，
+        避免用永续假设隐匿中国语境下的关键风险。
+      </p>
+      <p class="applicability">
+        估算路径：N 由不动产权证 / 国有土地使用证上的「使用权终止日期」减估值时点得到；
+        CF_t 由租金、空置、运营成本、税费的逐年预测得出；
+        TV 可由「零终值」「房屋残值」「续期对价」等多种结构构造，使用者自行选定情景。
+      </p>
+    </section>
+
+    <section>
+      <h2>模型三　直接资本化法（Direct Capitalization）</h2>
+      <div class="formula">V = NOI / k，要求 k &gt; 0</div>
+      <table class="params">
+        <thead>
+          <tr><th>参数</th><th>含义</th><th>来源</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>NOI</td><td>稳态年净营业收入（元/年）</td><td>由用户输入</td></tr>
+          <tr><td>k</td><td>资本化率 cap rate（1/年），市场可观测量的反映</td><td>由用户输入</td></tr>
+        </tbody>
+      </table>
+      <p class="applicability">
+        适用性：假设 NOI 稳态、增长率隐含于 k 中；对持有期较短或近期 NOI 波动较大的标的不适用。
+        对剩余年限差异较大的中国商品住宅，可视为「在剩余年限内若 NOI 与 k 保持稳态」的近似上界，
+        与模型二互为校验。
+      </p>
+      <p class="applicability">
+        估算路径：k 可由「租售比反推」（年净租金 / 成交价的市场中位数）、
+        「同类已成交项目反推」（同类住宅 NOI / 同类住宅成交价）、
+        或「构建法」（无风险利率 + 流动性溢价 + 标的风险溢价 − 长期增长预期）任一路径估计；
+        每一项均由使用者输入。
+      </p>
+    </section>
+
+    <section>
+      <h2>模型四　市场比较法（含 hedonic 调整）</h2>
+      <div class="formula">V = (1 / m) × Σ_{i=1..m}  P_i × Π_{j}  (1 + c_{ij})</div>
+      <table class="params">
+        <thead>
+          <tr><th>参数</th><th>含义</th><th>来源</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>m</td><td>可比案例数（≥ 1）</td><td>由用户输入</td></tr>
+          <tr><td>P_i</td><td>第 i 个可比案例的成交价（元），需 &gt; 0</td><td>由用户输入</td></tr>
+          <tr><td>c_{ij}</td><td>第 i 个可比案例针对属性 j 的 hedonic 调整系数（小数）；所有可比案例使用同一属性集 j</td><td>由用户输入</td></tr>
+        </tbody>
+      </table>
+      <p class="applicability">
+        适用性：在交易活跃、可比案例充足的一二线城市核心区域最可靠；
+        对独特性强或交易稀薄的标的需谨慎。属于国家标准 GB/T 50291-2015「比较法」的规范形式。
+      </p>
+      <p class="applicability">
+        估算路径：可比案例由使用者根据当地公开成交数据筛选；c_{ij} 的取值由使用者根据当地市场对该属性的边际定价输入；
+        本应用不预置任何属性溢价数值。
+      </p>
+    </section>
+
+    <section>
+      <h2>模型五　成本法（折旧重置成本法）</h2>
+      <div class="formula">V = L + C_replace × (1 − d)</div>
+      <table class="params">
+        <thead>
+          <tr><th>参数</th><th>含义</th><th>来源</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>L</td><td>土地使用权评估价值（元），需 ≥ 0</td><td>由用户输入</td></tr>
+          <tr><td>C_replace</td><td>建筑物重置完全价格（元），需 ≥ 0；按当前建安造价重新建造同等建筑的成本</td><td>由用户输入</td></tr>
+          <tr><td>d</td><td>综合折旧率（比例），需 ∈ [0, 1]；包含物理折旧、功能折旧、外部折旧</td><td>由用户输入</td></tr>
+        </tbody>
+      </table>
+      <p class="applicability">
+        适用性：对二手房估值通常作为下界参考。属于国家标准 GB/T 50291-2015「成本法」的规范形式。
+      </p>
+      <p class="applicability">
+        估算路径：L 由基准地价系数修正法或市场比较法得到；
+        C_replace 由当地建安造价查询得到；
+        d 由使用者根据建筑年龄、维护状况、功能落后程度判断——本应用严格不给出 d 的任何数值建议。
+      </p>
+    </section>
+
+    <footer class="site-footer">
+      <p>
+        所有公式与适用边界引自仓库内 <code>docs/valuation-models.md</code>；
+        权威来源（民法典第 359 条、国家标准 GB/T 50291-2015、Damodaran 第 26 章）见该文档第八章。
+      </p>
+    </footer>
+  </main>
+</body>
+</html>
